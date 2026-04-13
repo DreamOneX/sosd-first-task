@@ -601,4 +601,26 @@ def run_train_bpe(
                 representing that <token1> was merged with <token2>.
                 Merges are ordered by order of creation.
     """
-    raise NotImplementedError
+    if not HAS_SUBMISSION:
+        raise NotImplementedError
+    else:
+        from pathlib import Path
+    
+    # Create trainer configuration
+    config = submission.BBPETrainerConfig(
+        vocab_size=vocab_size,
+        min_frequency=1,
+        max_workers=1,
+        chunk_size_bytes=1024 * 1024 * 1024,  # 1GB chunks
+        seed=42,
+        special_tokens=special_tokens,
+    )
+    trainer = submission.BBPETrainer(config=config)
+
+    input_file = Path(input_path) if not isinstance(input_path, Path) else input_path
+
+    model = trainer.train(files=[input_file])
+
+    vocab_inv: dict[int, bytes] = {v: k for k, v in model.vocab.items()}
+
+    return vocab_inv, model.merges
